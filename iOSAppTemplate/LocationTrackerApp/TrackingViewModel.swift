@@ -4,6 +4,25 @@ import UIKit
 
 @MainActor
 final class TrackingViewModel: ObservableObject {
+    enum TrackingMode: String, CaseIterable, Identifiable {
+        case lowPower
+        case standard
+
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .lowPower: return "Low power (Visits + Significant Change)"
+            case .standard: return "Standard (Continuous GPS + background triggers)"
+            }
+        }
+        var locationManagerMode: LocationManager.TrackingMode {
+            switch self {
+            case .lowPower: return .lowPower
+            case .standard: return .standard
+            }
+        }
+    }
+
     @Published var serverURLString: String = UserDefaults.standard.string(forKey: "serverURLString") ?? AppConfig.defaultServerURLString {
         didSet { UserDefaults.standard.set(serverURLString, forKey: "serverURLString") }
     }
@@ -15,6 +34,16 @@ final class TrackingViewModel: ObservableObject {
     }
     @Published var isTrackingEnabled: Bool = UserDefaults.standard.bool(forKey: "isTrackingEnabled") {
         didSet { UserDefaults.standard.set(isTrackingEnabled, forKey: "isTrackingEnabled") }
+    }
+
+    @Published var trackingMode: TrackingMode = {
+        if let raw = UserDefaults.standard.string(forKey: "trackingMode"),
+           let mode = TrackingMode(rawValue: raw) {
+            return mode
+        }
+        return .lowPower
+    }() {
+        didSet { UserDefaults.standard.set(trackingMode.rawValue, forKey: "trackingMode") }
     }
 
     @Published private(set) var lastSendStatusText: String?
@@ -30,7 +59,12 @@ final class TrackingViewModel: ObservableObject {
 
     var trackingHintText: String {
         if !isTrackingEnabled { return "Enable tracking to send updates on location changes (throttled to the interval)." }
-        return "Tracking ON. The app will send when it receives location updates (including in background, if iOS allows)."
+        switch trackingMode {
+        case .lowPower:
+            return "Tracking ON (Low power). Sends happen on Visits / Significant-Change events, throttled to the interval."
+        case .standard:
+            return "Tracking ON (Standard). Uses continuous GPS + background triggers; higher battery use."
+        }
     }
 
     func bind(auth: GoogleAuthViewModel, locationManager: LocationManager) {
@@ -53,7 +87,7 @@ final class TrackingViewModel: ObservableObject {
         guard let locationManager else { return }
         lastSendErrorText = nil
         locationManager.requestAlwaysAuthorization()
-        locationManager.startTracking()
+        locationManager.startTracking(mode: trackingMode.locationManagerMode)
     }
 
     func stop() {

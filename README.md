@@ -122,6 +122,9 @@ Important: if the user **force-quits** the app (swipe it away in the app switche
 ### “Works when enabled even after closing” checklist
 
 - In the app UI, enable **Tracking enabled**.
+- Set **Mode**:
+  - **Low power** for best battery / background relaunch on movement
+  - **Standard** for more frequent updates (higher battery)
 - iOS Settings → Privacy & Security → Location Services:
   - App permission: **Always**
   - Enable **Precise Location** (if you need accuracy)

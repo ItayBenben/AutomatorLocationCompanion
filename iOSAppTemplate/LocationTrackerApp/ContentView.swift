@@ -92,6 +92,17 @@ struct ContentView: View {
                             }
                         }
 
+                    Picker("Mode", selection: $tracking.trackingMode) {
+                        ForEach(TrackingViewModel.TrackingMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    .onChange(of: tracking.trackingMode) { _, _ in
+                        if tracking.isTrackingEnabled {
+                            tracking.start()
+                        }
+                    }
+
                     Text(tracking.trackingHintText)
                         .font(.footnote)
                         .foregroundStyle(.secondary)

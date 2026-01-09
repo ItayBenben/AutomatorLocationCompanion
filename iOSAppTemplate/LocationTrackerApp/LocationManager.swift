@@ -42,13 +42,23 @@ final class LocationManager: NSObject, ObservableObject {
     /// Best-effort "keep working when app is backgrounded":
     /// - Continuous updates while running
     /// - Significant-change + Visits so iOS can wake/relaunch you on movement
-    func startTracking() {
+    enum TrackingMode: String {
+        case standard
+        case lowPower
+    }
+
+    func startTracking(mode: TrackingMode) {
         lastLocationError = nil
         if CLLocationManager.significantLocationChangeMonitoringAvailable() {
             manager.startMonitoringSignificantLocationChanges()
         }
         manager.startMonitoringVisits()
-        manager.startUpdatingLocation()
+        switch mode {
+        case .standard:
+            manager.startUpdatingLocation()
+        case .lowPower:
+            manager.stopUpdatingLocation()
+        }
     }
 
     func stopTracking() {
