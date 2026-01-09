@@ -1,0 +1,85 @@
+import Foundation
+import CoreLocation
+
+@MainActor
+final class LocationManager: NSObject, ObservableObject {
+    @Published private(set) var authorizationStatus: CLAuthorizationStatus
+    @Published private(set) var lastLocation: CLLocation?
+    @Published private(set) var lastLocationError: String?
+
+    private let manager: CLLocationManager
+
+    override init() {
+        let mgr = CLLocationManager()
+        self.manager = mgr
+        self.authorizationStatus = mgr.authorizationStatus
+        super.init()
+        mgr.delegate = self
+        mgr.desiredAccuracy = kCLLocationAccuracyBest
+        mgr.distanceFilter = kCLDistanceFilterNone
+        mgr.pausesLocationUpdatesAutomatically = false
+        mgr.allowsBackgroundLocationUpdates = true
+        mgr.showsBackgroundLocationIndicator = true
+        mgr.activityType = .other
+    }
+
+    func requestAlwaysAuthorization() {
+        lastLocationError = nil
+        manager.requestAlwaysAuthorization()
+    }
+
+    func startUpdating() {
+        lastLocationError = nil
+        manager.startUpdatingLocation()
+    }
+
+    func stopUpdating() {
+        manager.stopUpdatingLocation()
+    }
+
+    func startTracking() {
+        lastLocationError = nil
+        if CLLocationManager.significantLocationChangeMonitoringAvailable() {
+            manager.startMonitoringSignificantLocationChanges()
+        }
+        manager.startMonitoringVisits()
+        manager.startUpdatingLocation()
+    }
+
+    func stopTracking() {
+        manager.stopUpdatingLocation()
+        manager.stopMonitoringSignificantLocationChanges()
+        manager.stopMonitoringVisits()
+    }
+}
+
+extension LocationManager: CLLocationManagerDelegate {
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        Task { @MainActor in
+            self.authorizationStatus = manager.authorizationStatus
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let loc = locations.last else { return }
+        Task { @MainActor in
+            self.lastLocation = loc
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didVisit visit: CLVisit) {
+        let coord = CLLocationCoordinate2D(latitude: visit.coordinate.latitude, longitude: visit.coordinate.longitude)
+        let timestamp = visit.departureDate == Date.distantFuture ? visit.arrivalDate : visit.departureDate
+        let loc = CLLocation(coordinate: coord, altitude: 0, horizontalAccuracy: 100, verticalAccuracy: 0, timestamp: timestamp)
+        Task { @MainActor in
+            self.lastLocation = loc
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        Task { @MainActor in
+            self.lastLocationError = error.localizedDescription
+        }
+    }
+}
+
