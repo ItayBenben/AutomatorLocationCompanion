@@ -119,6 +119,16 @@ If the device is stationary and iOS delivers fewer location updates, sends will 
 
 Important: if the user **force-quits** the app (swipe it away in the app switcher), iOS will stop background location delivery until the user manually opens the app again.
 
+### “Works when enabled even after closing” checklist
+
+- In the app UI, enable **Tracking enabled**.
+- iOS Settings → Privacy & Security → Location Services:
+  - App permission: **Always**
+  - Enable **Precise Location** (if you need accuracy)
+- Xcode target:
+  - Capabilities → Background Modes → **Location updates**
+- Don’t force-quit the app (force-quit disables background relaunch).
+
 ## Security / server verification
 
 Your server should verify the Google ID token:
