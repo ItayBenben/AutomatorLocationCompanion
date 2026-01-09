@@ -109,12 +109,15 @@ Notes:
 ### Background behavior caveat
 
 iOS does **not** guarantee “every X seconds” network execution in the background via timers.
-This app achieves background sending by:
+This app achieves best-effort background sending by:
 
-- enabling background **location** updates, and
-- sending on each location update, **throttled** to your configured interval.
+- enabling background **location** updates,
+- using **Significant Location Change** + **Visits** monitoring (so iOS can wake/relaunch the app on movement), and
+- sending on each location update/visit, **throttled** to your configured interval.
 
 If the device is stationary and iOS delivers fewer location updates, sends will happen less frequently.
+
+Important: if the user **force-quits** the app (swipe it away in the app switcher), iOS will stop background location delivery until the user manually opens the app again.
 
 ## Security / server verification
 

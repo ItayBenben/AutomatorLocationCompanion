@@ -53,11 +53,11 @@ final class TrackingViewModel: ObservableObject {
         guard let locationManager else { return }
         lastSendErrorText = nil
         locationManager.requestAlwaysAuthorization()
-        locationManager.startUpdating()
+        locationManager.startTracking()
     }
 
     func stop() {
-        locationManager?.stopUpdating()
+        locationManager?.stopTracking()
     }
 
     func sendNow() async {

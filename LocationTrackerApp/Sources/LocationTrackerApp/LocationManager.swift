@@ -19,6 +19,8 @@ final class LocationManager: NSObject, ObservableObject {
         mgr.distanceFilter = kCLDistanceFilterNone
         mgr.pausesLocationUpdatesAutomatically = false
         mgr.allowsBackgroundLocationUpdates = true
+        mgr.showsBackgroundLocationIndicator = true
+        mgr.activityType = .other
     }
 
     func requestAlwaysAuthorization() {
@@ -34,6 +36,21 @@ final class LocationManager: NSObject, ObservableObject {
     func stopUpdating() {
         manager.stopUpdatingLocation()
     }
+
+    func startTracking() {
+        lastLocationError = nil
+        if CLLocationManager.significantLocationChangeMonitoringAvailable() {
+            manager.startMonitoringSignificantLocationChanges()
+        }
+        manager.startMonitoringVisits()
+        manager.startUpdatingLocation()
+    }
+
+    func stopTracking() {
+        manager.stopUpdatingLocation()
+        manager.stopMonitoringSignificantLocationChanges()
+        manager.stopMonitoringVisits()
+    }
 }
 
 extension LocationManager: CLLocationManagerDelegate {
@@ -45,6 +62,15 @@ extension LocationManager: CLLocationManagerDelegate {
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let loc = locations.last else { return }
+        Task { @MainActor in
+            self.lastLocation = loc
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didVisit visit: CLVisit) {
+        let coord = CLLocationCoordinate2D(latitude: visit.coordinate.latitude, longitude: visit.coordinate.longitude)
+        let timestamp = visit.departureDate == Date.distantFuture ? visit.arrivalDate : visit.departureDate
+        let loc = CLLocation(coordinate: coord, altitude: 0, horizontalAccuracy: 100, verticalAccuracy: 0, timestamp: timestamp)
         Task { @MainActor in
             self.lastLocation = loc
         }
